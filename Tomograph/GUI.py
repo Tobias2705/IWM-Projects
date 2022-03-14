@@ -1,5 +1,6 @@
 import JpgToSin
 import SinToJpg
+import Animation
 import numpy as np
 import cv2
 import math
@@ -32,7 +33,7 @@ class Gui:
         self.startButton = StartButton()
         self.tomograph = Tomograph(360, 1, 90, 90, False, False, foto, "", "")
 
-    def start(self):
+    def start(self, x):
         self.container.displayContainer.clear_output()
         self.tomograph.main()
         self.container.displayImages(self.tomograph.img, self.tomograph.sinograms[-1], self.tomograph.reverses[-1])
@@ -46,17 +47,11 @@ class Gui:
         
         self.container.createContainer()
         
-        self.startButton.button.on_click(self.start())
+        self.startButton.button.on_click(self.start)
 
-    def onSinogramChange(self, v):
-        if len(self.tomograph.sinograms) < self.sliders.sinogramSlider.value or len(self.tomograph.reverses) < self.sliders.outputSlider.value:
-            return
-        self.container.displayImages(self.tomograph.img,
-                                     self.tomograph.sinograms[self.sliders.sinogramSlider.value - 1],
-                                     self.tomograph.reverses[self.sliders.outputSlider.value - 1])
-
-    def onReverseChange(self, v):
-        if len(self.tomograph.sinograms) < self.sliders.sinogramSlider.value or len(self.tomograph.reverses) < self.sliders.outputSlider.value:
+    def onSinogramOrReverseChange(self, v):
+        if len(self.tomograph.sinograms) < self.sliders.sinogramSlider.value \
+                or len(self.tomograph.reverses) < self.sliders.outputSlider.value:
             return
         self.container.displayImages(self.tomograph.img,
                                      self.tomograph.sinograms[self.sliders.sinogramSlider.value - 1],
@@ -72,8 +67,8 @@ class Gui:
         self.tomograph.detector_rng = v.new
 
     def observeSliders(self):
-        self.sliders.sinogramSlider.observe(self.onSinogramChange, names="value")
-        self.sliders.outputSlider.observe(self.onReverseChange, names="value")
+        self.sliders.sinogramSlider.observe(self.onSinogramOrReverseChange, names="value")
+        self.sliders.outputSlider.observe(self.onSinogramOrReverseChange, names="value")
         self.sliders.stepSlider.observe(self.onStepChange, names="value")
         self.sliders.detectorsNumberSlider.observe(self.onDetectorsNumberChange, names="value")
         self.sliders.detectorRangeSlider.observe(self.onDetectorsRangeChange, names="value")
@@ -119,9 +114,9 @@ class Tomograph:
 
         # Make reverse sinogram
         rvr = SinToJpg.Reversed()
-        rvr.makeReversed(sin.sinograms[-1], self.iterations, self.step, self.detector_num, self.detector_rng, dims, self.input_image)
+        rvr.makeReversed(sin.sinograms[-1], self.iterations, self.step, self.detector_num,
+                         self.detector_rng, dims, self.input_image)
         self.reverses = rvr.reverse_sinograms
-        
 
     def showImage(self, title, plot):
         fig, plots = plt.subplots(1, 2)
@@ -139,7 +134,7 @@ class Container:
 
     def createContainer(self):
         self.displayContainer = widgets.Output(layout={'height': '350px'})
-
+        
         self.fig, self.axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
 
         self.axes[0].set_title('Obraz wejściowy')
