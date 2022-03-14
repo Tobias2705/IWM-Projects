@@ -1,4 +1,5 @@
 import JpgToSin
+import SinToJpg
 import numpy as np
 import cv2
 import math
@@ -25,36 +26,41 @@ def normalize(image):
 
 # Definicja klas
 class Gui:
-    def __init__(self):
+    def __init__(self, foto):
         self.sliders = Sliders()
         self.container = Container()
         self.startButton = StartButton()
-        self.tomograph = Tomograph(360, 1, 90, 90, False, False, "Zdjecia/Z_doca/Shepp_logan.jpg", "", "")
-
-    def startProgram(self):
-        self.sliders.createSlider()
-        self.sliders.display()
-        self.startButton.display()
-        self.startButton.start.on_click(self.start())
+        self.tomograph = Tomograph(360, 1, 90, 90, False, False, foto, "", "")
 
     def start(self):
-        self.container.createContainer()
         self.container.displayContainer.clear_output()
         self.tomograph.main()
+        self.container.displayImages(self.tomograph.img, self.tomograph.sinograms[-1], self.tomograph.reverses[-1])
+    
+    def startProgram(self):
+        self.sliders.createSlider()
+        self.observeSliders()
+        self.sliders.display()
+        
+        self.startButton.display()
+        
+        self.container.createContainer()
+        
+        self.startButton.button.on_click(self.start())
 
-    def onSinogramChange(self):
-        if len(self.tomograph.sinograms) < self.sliders.sinogramSlider.value:
-            # or len(reverses) < outputIter.value:
+    def onSinogramChange(self, v):
+        if len(self.tomograph.sinograms) < self.sliders.sinogramSlider.value or len(self.tomograph.reverses) < self.sliders.outputSlider.value:
             return
         self.container.displayImages(self.tomograph.img,
-                                     self.tomograph.sinograms[self.sliders.sinogramSlider.value - 1])
-        # , reverses[outputIter.value - 1])
+                                     self.tomograph.sinograms[self.sliders.sinogramSlider.value - 1],
+                                     self.tomograph.reverses[self.sliders.outputSlider.value - 1])
 
-    # def onReverseChange(self, img, sinograms, sinogramIter, reverses, outputIter):
-    #     if len(sinograms) < sinogramIter.value or len(reverses) < outputIter.value:
-    #         return
-    #     item.container.display_images(self.tomograph.img, sinograms[sinogramIter.value - 1],
-    #                                   reverses[outputIter.value - 1])
+    def onReverseChange(self, v):
+        if len(self.tomograph.sinograms) < self.sliders.sinogramSlider.value or len(self.tomograph.reverses) < self.sliders.outputSlider.value:
+            return
+        self.container.displayImages(self.tomograph.img,
+                                     self.tomograph.sinograms[self.sliders.sinogramSlider.value - 1],
+                                     self.tomograph.reverses[self.sliders.outputSlider.value - 1])
 
     def onStepChange(self, v):
         self.tomograph.step = v.new
@@ -67,7 +73,7 @@ class Gui:
 
     def observeSliders(self):
         self.sliders.sinogramSlider.observe(self.onSinogramChange, names="value")
-        # self.sliders.outputSlider.observe(self.onReverseChange, names="value")
+        self.sliders.outputSlider.observe(self.onReverseChange, names="value")
         self.sliders.stepSlider.observe(self.onStepChange, names="value")
         self.sliders.detectorsNumberSlider.observe(self.onDetectorsNumberChange, names="value")
         self.sliders.detectorRangeSlider.observe(self.onDetectorsRangeChange, names="value")
@@ -104,17 +110,18 @@ class Tomograph:
         self.img[radius - round(len(resized) / 2): radius + round(len(resized) / 2),
                  radius - round(len(resized[0]) / 2): radius + round(len(resized[0]) / 2)] = resized
         self.input_image = self.img
+        dims = [len(self.img), len(self.img[0])]
 
         # Make sinogram
         sin = JpgToSin.Sinogram()
         sin.makeSinogram(self.img, self.iterations, self.step, self.detector_num, self.detector_rng)
         self.sinograms = sin.sinograms
 
-        #self.showImage('Sinogram', sin.sinograms[-1])
-
-        # make_reverse_sinogram(sinograms[-1], [len(image), len(image[0])])
-
-        # display_images(image, sinograms[-1], reverses[-1])
+        # Make reverse sinogram
+        rvr = SinToJpg.Reversed()
+        rvr.makeReversed(sin.sinograms[-1], self.iterations, self.step, self.detector_num, self.detector_rng, dims, self.input_image)
+        self.reverses = rvr.reverse_sinograms
+        
 
     def showImage(self, title, plot):
         fig, plots = plt.subplots(1, 2)
@@ -133,37 +140,37 @@ class Container:
     def createContainer(self):
         self.displayContainer = widgets.Output(layout={'height': '350px'})
 
-        self.fig, self.axes = plt.subplots(nrows=1, ncols=4, figsize=(15, 5))
+        self.fig, self.axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
 
         self.axes[0].set_title('Obraz wejściowy')
         self.axes[1].set_title('Sinogram')
-        # self.axes[2].set_title('Obraz wyjściowy')
+        self.axes[2].set_title('Obraz wyjściowy')
 
         self.axes[0].axis('off')
         self.axes[1].axis('off')
-        # self.axes[2].axis('off')
+        self.axes[2].axis('off')
 
         plt.close()
         display(self.displayContainer)
 
-    def displayImages(self, image, sinogram):  # , reverse):
+    def displayImages(self, image, sinogram, reverse):
         sinogram = normalize(sinogram)
-        # reverse = normalize(reverse)
+        reverse = normalize(reverse)
 
         with self.displayContainer:
             clear_output()
             self.axes[0].imshow(image, cmap='gray')
             self.axes[1].imshow(sinogram, cmap='gray')
-            # self.axes[2].imshow(reverse, cmap='gray')
+            self.axes[2].imshow(reverse, cmap='gray')
             display(self.fig)
 
 
 class StartButton:
     def __init__(self):
-        self.start = widgets.Button(description="START", button_style="danger")
+        self.button = widgets.Button(description="START", button_style="danger")
 
     def display(self):
-        display(self.start)
+        display(self.button)
 
 
 class Sliders:
