@@ -1,6 +1,6 @@
 import JpgToSin
 import SinToJpg
-import Animation
+import Normalization
 import numpy as np
 import cv2
 import math
@@ -36,24 +36,24 @@ class Gui:
     def start(self, x):
         self.container.displayContainer.clear_output()
         self.tomograph.main()
-        self.container.displayImages(self.tomograph.img, self.tomograph.sinograms[-1], self.tomograph.reverses[-1])
-    
+        self.container.displayImages(self.tomograph.original, self.tomograph.sinograms[-1], self.tomograph.reverses[-1])
+
     def startProgram(self):
         self.sliders.createSlider()
         self.observeSliders()
         self.sliders.display()
-        
+
         self.startButton.display()
-        
+
         self.container.createContainer()
-        
+
         self.startButton.button.on_click(self.start)
 
     def onSinogramOrReverseChange(self, v):
         if len(self.tomograph.sinograms) < self.sliders.sinogramSlider.value \
                 or len(self.tomograph.reverses) < self.sliders.outputSlider.value:
             return
-        self.container.displayImages(self.tomograph.img,
+        self.container.displayImages(self.tomograph.original,
                                      self.tomograph.sinograms[self.sliders.sinogramSlider.value - 1],
                                      self.tomograph.reverses[self.sliders.outputSlider.value - 1])
 
@@ -87,7 +87,8 @@ class Tomograph:
 
         self.sinograms = []
         self.reverses = []
-        self.original = []
+        self.before_normalization = None
+        self.normalized = []
         self.input_image = []
 
         self.patient = patient
@@ -95,15 +96,18 @@ class Tomograph:
         self.date = datetime.now()
 
     def main(self):
-        self.img = cv2.cvtColor(imread(self.source), cv2.COLOR_RGBA2GRAY)
-        self.original = np.copy(self.img)
+        self.before_normalization = cv2.cvtColor(imread(self.source), cv2.COLOR_RGBA2GRAY)
+        self.original = np.copy(self.before_normalization)
+        # Frame_size and img_size are default equal to 1024 and 624
+        self.img = Normalization.normalization(np.copy(self.original), frame_size=1024, img_size=624)
+
         resized = resize(self.img, (round(len(self.img) / 4), round(len(self.img[0]) / 4)))
         new_edge = round(math.sqrt(2) * max(len(resized), len(resized[0])))
         radius = round(new_edge / 2)
 
         self.img = np.zeros([new_edge, new_edge])
         self.img[radius - round(len(resized) / 2): radius + round(len(resized) / 2),
-                 radius - round(len(resized[0]) / 2): radius + round(len(resized[0]) / 2)] = resized
+        radius - round(len(resized[0]) / 2): radius + round(len(resized[0]) / 2)] = resized
         self.input_image = self.img
         dims = [len(self.img), len(self.img[0])]
 
@@ -134,7 +138,7 @@ class Container:
 
     def createContainer(self):
         self.displayContainer = widgets.Output(layout={'height': '350px'})
-        
+
         self.fig, self.axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
 
         self.axes[0].set_title('Obraz wejściowy')
