@@ -9,5 +9,11 @@ def normalization(image, frame_size=1024, img_size=624):
     step = int((frame_size - img_size) / 2)
     for i in range(img_size):
         for j in range(img_size):
-            frame[i+step][j+step] = img[i][j]
+            frame[i + step][j + step] = img[i][j]
     return frame
+
+
+def normalization_smaller(image, new_size=180):
+    img = np.copy(image)
+    img = resize(img, [new_size, new_size])
+    return img

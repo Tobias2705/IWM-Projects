@@ -1,50 +1,52 @@
-import JpgToSin
-import SinToJpg
-import Normalization
-import numpy as np
-import cv2
-import math
+import Tomograph as Tom
+import Container as Ct
 import ipywidgets as widgets
-import matplotlib.pyplot as plt
-from datetime import datetime
-from skimage.transform import resize
-from skimage.io import imread
-from IPython.display import display, clear_output
-
-
-# Zdefiniowanie funkcji
-def normalize(image):
-    min_value = np.min(image)
-
-    max_value = np.max(image)
-
-    for i in range(len(image)):
-        for j in range(len(image[i])):
-            image[i, j] = (image[i, j] - min_value) / (max_value - min_value)
-
-    return image
+import re
+import time
+from dateutil.parser import parse
+from IPython.display import display
 
 
 # Definicja klas
 class Gui:
     def __init__(self, foto):
         self.sliders = Sliders()
-        self.container = Container()
+        self.container = Ct.Container()
         self.startButton = StartButton()
-        self.tomograph = Tomograph(360, 1, 90, 90, False, False, foto, "", "")
+        self.textFields = TextFields()
+        self.checkBoxes = CheckBoxes()
+        self.tomograph = Tom.Tomograph(360, 1, 90, 90, False, False, foto, "", "")
 
-    def start(self, x):
+    def start(self, v):
         self.container.displayContainer.clear_output()
         self.tomograph.main()
-        self.container.displayImages(self.tomograph.original, self.tomograph.sinograms[-1], self.tomograph.reverses[-1])
+        self.container.displayImages(self.tomograph, self.tomograph.sinograms[-1], self.tomograph.reverses[-1])
+        self.displayInformation()
 
+    def displayInformation(self):
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("Błąd średiokwadratowy: ", self.container.mse)
+        if self.tomograph.patient != "":
+            print("Pacjent: ", self.tomograph.patient)
+            print("Opis badanego: ", self.tomograph.descript)
+        print("Data badania: ", self.tomograph.date.date())
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        
     def startProgram(self):
+        self.textFields.createTextFields(self.tomograph)
+        self.observeTextFields()
+        self.textFields.display()
+        
+        self.checkBoxes.createCheckBoxes()
+        self.observerCheckBoxes()
+        self.checkBoxes.display()
+        
         self.sliders.createSlider()
         self.observeSliders()
         self.sliders.display()
 
         self.startButton.display()
-
+        
         self.container.createContainer()
 
         self.startButton.button.on_click(self.start)
@@ -53,8 +55,8 @@ class Gui:
         if len(self.tomograph.sinograms) < self.sliders.sinogramSlider.value \
                 or len(self.tomograph.reverses) < self.sliders.outputSlider.value:
             return
-        self.container.displayImages(self.tomograph.original,
-                                     self.tomograph.sinograms[self.sliders.sinogramSlider.value - 1],
+        time.sleep(0.2)
+        self.container.displayImages(self.tomograph, self.tomograph.sinograms[self.sliders.sinogramSlider.value - 1], 
                                      self.tomograph.reverses[self.sliders.outputSlider.value - 1])
 
     def onStepChange(self, v):
@@ -73,95 +75,41 @@ class Gui:
         self.sliders.detectorsNumberSlider.observe(self.onDetectorsNumberChange, names="value")
         self.sliders.detectorRangeSlider.observe(self.onDetectorsRangeChange, names="value")
 
+    def updateName(self, v):
+        self.tomograph.patient = self.textFields.patient.value
 
-class Tomograph:
-    def __init__(self, iterations, step, detector_num, detector_rng, isFilter, isDicom, source, patient, descript):
-        self.iterations = iterations
-        self.step = step
-        self.detector_num = detector_num
-        self.detector_rng = detector_rng
-        self.isFilter = isFilter
-        self.isDicom = isDicom
-        self.source = source
-        self.img = None
+    def updateDescription(self, v):
+        self.tomograph.descript = self.textFields.descript.value
 
-        self.sinograms = []
-        self.reverses = []
-        self.before_normalization = None
-        self.normalized = []
-        self.input_image = []
+    def updateDate(self, v):
+        c1 = re.search("^[0-2][0-8]-[0][2]-[1-2][0-9][0-9][0-9]$", self.textFields.date.value)  # February
+        c1a = re.search('^[2][9]-[0][2]-[1-2][0-9][0-9][0,2,4,6,8]$', self.textFields.date.value)  # February
+        c2 = re.search("^[0-2][0-9]-[0][4,6,9]-[1-2][0-9][0-9][0-9]$", self.textFields.date.value)  # Short months
+        c3 = re.search("^[3][0]-[0][4,6,9]-[1-2][0-9][0-9][0-9]$", self.textFields.date.value)  # Short months
+        c4 = re.search("^[0-2][0-9]-[1][1]-[1-2][0-9][0-9][0-9]$", self.textFields.date.value)  # Short months
+        c5 = re.search("^[3][0]-[1][1]-[1-2][0-9][0-9][0-9]$", self.textFields.date.value)  # Short months
 
-        self.patient = patient
-        self.descript = descript
-        self.date = datetime.now()
+        c6 = re.search("^[0-2][0-9]-[0][1,3,5,7,8]-[1-2][0-9][0-9][0-9]$", self.textFields.date.value)  # Long months
+        c7 = re.search("^[0-2][0-9]-[0][1,3,5,7,8]-[1-2][0-9][0-9][0-9]$", self.textFields.date.value)  # Long months
+        c8 = re.search("^[3][0-1]-[1][0,2]-[1-2][0-9][0-9][0-9]$", self.textFields.date.value)  # Long months
+        c9 = re.search("^[3][0-1]-[1][0,2]-[1-2][0-9][0-9][0-9]$", self.textFields.date.value)  # Long months
+        if c1 or c1a or c2 or c3 or c4 or c5 or c6 or c7 or c8 or c9:
+            self.tomograph.date = parse(self.textFields.date.value)
 
-    def main(self):
-        self.before_normalization = cv2.cvtColor(imread(self.source), cv2.COLOR_RGBA2GRAY)
-        self.original = np.copy(self.before_normalization)
-        # Frame_size and img_size are default equal to 1024 and 624
-        self.img = Normalization.normalization(np.copy(self.original), frame_size=1024, img_size=624)
+    def observeTextFields(self):
+        self.textFields.patient.observe(self.updateName)
+        self.textFields.descript.observe(self.updateDescription)
+        self.textFields.date.observe(self.updateDate)
 
-        resized = resize(self.img, (round(len(self.img) / 4), round(len(self.img[0]) / 4)))
-        new_edge = round(math.sqrt(2) * max(len(resized), len(resized[0])))
-        radius = round(new_edge / 2)
+    def isFilteringUpdate(self, v):
+        self.tomograph.isFilter = self.checkBoxes.filter.value
 
-        self.img = np.zeros([new_edge, new_edge])
-        self.img[radius - round(len(resized) / 2): radius + round(len(resized) / 2),
-        radius - round(len(resized[0]) / 2): radius + round(len(resized[0]) / 2)] = resized
-        self.input_image = self.img
-        dims = [len(self.img), len(self.img[0])]
+    def isDicomUpdate(self, v):
+        self.tomograph.isDicom = self.checkBoxes.dicom.value
 
-        # Make sinogram
-        sin = JpgToSin.Sinogram()
-        sin.makeSinogram(self.img, self.iterations, self.step, self.detector_num, self.detector_rng)
-        self.sinograms = sin.sinograms
-
-        # Make reverse sinogram
-        rvr = SinToJpg.Reversed()
-        rvr.makeReversed(sin.sinograms[-1], self.iterations, self.step, self.detector_num,
-                         self.detector_rng, dims, self.input_image)
-        self.reverses = rvr.reverse_sinograms
-
-    def showImage(self, title, plot):
-        fig, plots = plt.subplots(1, 2)
-        plots[0].imshow(self.original, cmap='gray')
-        plots[0].set_title('Obraz oryginalny')
-        plots[1].imshow(plot, cmap='gray')
-        plots[1].set_title(title)
-
-
-class Container:
-    def __init__(self):
-        self.displayContainer = None
-        self.fig = None
-        self.axes = None
-
-    def createContainer(self):
-        self.displayContainer = widgets.Output(layout={'height': '350px'})
-
-        self.fig, self.axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
-
-        self.axes[0].set_title('Obraz wejściowy')
-        self.axes[1].set_title('Sinogram')
-        self.axes[2].set_title('Obraz wyjściowy')
-
-        self.axes[0].axis('off')
-        self.axes[1].axis('off')
-        self.axes[2].axis('off')
-
-        plt.close()
-        display(self.displayContainer)
-
-    def displayImages(self, image, sinogram, reverse):
-        sinogram = normalize(sinogram)
-        reverse = normalize(reverse)
-
-        with self.displayContainer:
-            clear_output()
-            self.axes[0].imshow(image, cmap='gray')
-            self.axes[1].imshow(sinogram, cmap='gray')
-            self.axes[2].imshow(reverse, cmap='gray')
-            display(self.fig)
+    def observerCheckBoxes(self):
+        self.checkBoxes.filter.observe(self.isFilteringUpdate)
+        self.checkBoxes.dicom.observe(self.isDicomUpdate)
 
 
 class StartButton:
@@ -197,3 +145,42 @@ class Sliders:
             box = widgets.HBox([widgets.Label(slider.description), slider])
             slider.description = ""
             display(box)
+
+
+class TextFields:
+    def __init__(self):
+        self.patient = None
+        self.descript = None
+        self.date = None
+        self.fields = []
+
+    def createTextFields(self, tom):
+        self.patient = widgets.Text(description="Pacient Name", value=tom.patient)
+        self.descript = widgets.Text(description="Pacient Descript", value=tom.descript)
+        self.date = widgets.Text(description="Date of Medical Examination", placeholder='DD-MM-YYYY',
+                                 value=tom.date.strftime("%d-%m-%Y"))
+
+        self.fields = [self.patient, self.descript, self.date]
+
+    def display(self):
+        for text in self.fields:
+            box = widgets.HBox([widgets.Label(text.description), text])
+            text.description = ""
+            display(box)
+
+
+class CheckBoxes:
+    def __init__(self):
+        self.dicom = None
+        self.filter = None
+        self.checkBoxes = []
+
+    def createCheckBoxes(self):
+        self.dicom = widgets.Checkbox(description="DICOM", value=False)
+        self.filter = widgets.Checkbox(description="Filter", value=False)
+
+        self.checkBoxes = [self.filter, self.dicom]
+
+    def display(self):
+        box = widgets.HBox([self.filter, self.dicom])
+        display(box)
