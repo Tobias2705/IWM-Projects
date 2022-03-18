@@ -1,10 +1,11 @@
 import ipywidgets as widgets
 import numpy as np
 import matplotlib.pyplot as plt
+import pydicom
 from IPython.display import display, clear_output
 from skimage.filters import median
 from sklearn.metrics import mean_squared_error
-
+import Dicom
 
 # Zdefiniowanie funkcji
 def normalize(image):
@@ -47,11 +48,19 @@ class Container:
         if tom.isFilter:
             reverseF = median(np.copy(reverse), selem=np.ones((5, 5)))
 
+        if tom.isDicom:
+            Dicom.create_dicom(np.copy(reverse), tom.patient, tom.descript, tom.date)
+            reverseD = pydicom.dcmread("output.dcm")
+            tom.dicom = reverseD
+
+
         with self.displayContainer:
             clear_output()
             self.axes[0][0].set_title('Obraz wejściowy', fontsize=26)
             self.axes[0][1].set_title('Sinogram', fontsize=26)
-            self.axes[1][0].set_title('Obraz wyjściowy bez filtru', fontsize=26) 
+            self.axes[1][0].set_title('Obraz wyjściowy bez filtru', fontsize=26)
+
+
 
             for i in range(3):
                 for j in range(2):
@@ -69,5 +78,11 @@ class Container:
             else:
                 self.mse = mse(tom.compare, reverse)
                 self.axes[1][1].set_visible(False)
+            if tom.isDicom:
+                self.axes[2][0].set_visible(True)
+                self.axes[2][0].set_title('Dicom', fontsize=26)
+                self.axes[2][0].imshow(reverseD.pixel_array, cmap='gray')
+            else:
+                self.axes[2][0].set_visible(False)
             # self.axes[2][0].set_title('Obraz DICOM') -> To potem jak już dicom będziesz ogarniał
             display(self.fig)

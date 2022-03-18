@@ -28,6 +28,7 @@ class Tomograph:
         self.reverses = []
         self.normalized = []
         self.input_image = []
+        self.dicom = []
 
         self.patient = patient
         self.descript = descript
@@ -68,3 +69,5 @@ class Tomograph:
         plots[0].set_title('Obraz oryginalny')
         plots[1].imshow(plot, cmap='gray')
         plots[1].set_title(title)
+        plots[2].imshow(plot, cmap='gray')
+        plots[2].set_title(title)
