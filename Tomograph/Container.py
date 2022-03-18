@@ -33,9 +33,9 @@ class Container:
         self.mse = None
 
     def createContainer(self):
-        self.displayContainer = widgets.Output(layout={'height': '350px'})
+        self.displayContainer = widgets.Output(layout={'height': '1050px'})
 
-        self.fig, self.axes = plt.subplots(nrows=2, ncols=3, figsize=(15, 5))
+        self.fig, self.axes = plt.subplots(nrows=3, ncols=2, figsize=(25, 25))
 
         plt.close()
         display(self.displayContainer)
@@ -49,23 +49,25 @@ class Container:
 
         with self.displayContainer:
             clear_output()
-            self.axes[0][0].set_title('Obraz wejściowy')
-            self.axes[0][1].set_title('Sinogram')
-            self.axes[0][2].set_title('Obraz wyjściowy bez filtru') 
+            self.axes[0][0].set_title('Obraz wejściowy', fontsize=26)
+            self.axes[0][1].set_title('Sinogram', fontsize=26)
+            self.axes[1][0].set_title('Obraz wyjściowy bez filtru', fontsize=26) 
 
-            for i in range(2):
-                for j in range(3):
+            for i in range(3):
+                for j in range(2):
                     self.axes[i][j].axis('off')
                 
             self.axes[0][0].imshow(tom.original, cmap='gray')
             self.axes[0][1].imshow(sinogram, cmap='gray')
-            self.axes[0][2].imshow(reverse, cmap='gray')
+            self.axes[1][0].imshow(reverse, cmap='gray')
             
             if tom.isFilter:
-                self.axes[1][0].set_title('Obraz wyjściowy z filtrem')
-                self.axes[1][0].imshow(reverseF, cmap='gray')
+                self.axes[1][1].set_visible(True)
+                self.axes[1][1].set_title('Obraz wyjściowy z filtrem', fontsize=26)
+                self.axes[1][1].imshow(reverseF, cmap='gray')
                 self.mse = mse(tom.compare, reverseF)
             else:
                 self.mse = mse(tom.compare, reverse)
-            # self.axes[1][1].set_title('Obraz DICOM') -> To potem jak już dicom będziesz ogarniał
+                self.axes[1][1].set_visible(False)
+            # self.axes[2][0].set_title('Obraz DICOM') -> To potem jak już dicom będziesz ogarniał
             display(self.fig)
