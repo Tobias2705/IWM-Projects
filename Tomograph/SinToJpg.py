@@ -9,7 +9,7 @@ class Reversed:
 
     def makeReversed(self, img, iterations, step, detector_num, detector_rng, dimensions, input_img):
         pos = EmitersDetectors.Positions()
-        radius = round(len(img) / 2) - 1
+        radius = round(len(input_img) / 2) - 1
 
         emiters, detectors = pos.setPositions(iterations, step, radius, detector_num, detector_rng)
         reverse_sinogram = np.zeros(dimensions)

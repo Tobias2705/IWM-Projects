@@ -49,8 +49,8 @@ class Container:
             reverseF = median(np.copy(reverse), selem=np.ones((5, 5)))
 
         if tom.isDicom:
-            Dicom.create_dicom(np.copy(reverse), tom.patient, tom.descript, tom.date)
-            reverseD = pydicom.dcmread("output.dcm")
+            Dicom.writeDicom(np.copy(reverse), tom.patient, tom.descript)
+            reverseD = pydicom.dcmread("Dicom_File.dcm")
             tom.dicom = reverseD
 
 

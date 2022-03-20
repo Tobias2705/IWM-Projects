@@ -1,42 +1,38 @@
-import pydicom
 import numpy as np
-from pydicom.dataset import Dataset, FileDataset
-from pydicom.uid import ExplicitVRLittleEndian
-from pydicom._storage_sopclass_uids import MRImageStorage
-from datetime import datetime
+import pydicom
+from pydicom.data import get_testdata_files
+import datetime
 
-def create_dicom(image, patient_name, description, DATE):
-    image *= 256
-    image = image.astype(np.uint16)
+def writeDicom(image, name, comment):
+    filename = get_testdata_files("CT_small.dcm")[0]
+    ds = pydicom.dcmread(filename)
 
-    file_meta = Dataset()
-    file_meta.MediaStorageSOPClassUID = '1.2.840.10008.5.1.4.1.1.2'
-    file_meta.MediaStorageSOPInstanceUID = "1.2.3"
-    file_meta.ImplementationClassUID = "1.2.3.4"
-    file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+    def normalizeInDicom(image_temp):
+        maximum = 0
+        for vector in image_temp:
+            if max(vector) > maximum:
+                maximum = max(vector)
+        for i in range(len(image_temp)):
+            for x in range(len(image_temp[0])):
+                if maximum != 0 and image_temp[i][x] > 0:
+                    image_temp[i][x] = image_temp[i][x]*1024/maximum
+                else:
+                    image_temp[i][x] = 0
+        return image_temp
 
-    ds = FileDataset("output.dcm", {}, file_meta=file_meta, preamble=b"\0" * 128)
-    ds.is_little_endian = True
-    ds.is_implicit_VR = False
-    ds.PatientName = patient_name
-    ds.ContentDate = DATE.strftime('%Y%m%d')
-    ds.ContentTime = DATE.strftime('%H%M%S.%f')
-    ds.StudyDescription = description
-    ds.is_little_endian = True
-    ds.is_implicit_VR = False
-
-    ds.PixelRepresentation = 1
-    ds.SamplesPerPixel = 1
-    ds.PhotometricInterpretation = "MONOCHROME2"
-    ds.HighBit = 15
-    ds.BitsStored = 16
-    ds.BitsAllocated = 16
-    ds.SmallestImagePixelValue = str.encode('\x00\x00')
-    ds.LargestImagePixelValue = str.encode('\xff\xff')
-    ds.SOPClassUID = MRImageStorage
-    ds.Columns = len(image)
-    ds.Rows = len(image[0])
-
-    ds.PixelData = image.tobytes()
-
-    ds.save_as("output.dcm")
+    image = normalizeInDicom(image)
+    image2 = np.asarray(image, dtype=np.uint16)
+    ds.Rows = image2.shape[1]
+    ds.Columns = image2.shape[0]
+    ds.PixelData = image2.tostring()
+    ds.PatientName = name
+    ds.InstitutionName = 'Politechnika Poznanska'
+    ds.Manufacturer = 'Politechnika Poznanska'
+    #ds.PatientSex = sex
+    #ds.PatientBirthDate = birthDate
+    dt = datetime.datetime.now()
+    ds.StudyDate = dt.strftime('%Y%m%d')
+    timeStr = dt.strftime('%H%M%S.%d')
+    ds.StudyTime = timeStr
+    ds.AdditionalPatientHistory = comment
+    ds.save_as("Dicom_File.dcm")
