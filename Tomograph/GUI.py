@@ -9,13 +9,13 @@ from IPython.display import display
 
 # Definicja klas
 class Gui:
-    def __init__(self, foto):
-        self.sliders = Sliders()
+    def __init__(self, foto, iterations):
+        self.sliders = Sliders(iterations)
         self.container = Ct.Container()
         self.startButton = StartButton()
         self.textFields = TextFields()
         self.checkBoxes = CheckBoxes()
-        self.tomograph = Tom.Tomograph(360, 1, 90, 90, False, False, foto, "", "")
+        self.tomograph = Tom.Tomograph(iterations, 1, 180, 180, False, False, foto, "", "")
 
     def start(self, v):
         self.container.displayContainer.clear_output()
@@ -59,9 +59,6 @@ class Gui:
         self.container.displayImages(self.tomograph, self.tomograph.sinograms[self.sliders.sinogramSlider.value - 1], 
                                      self.tomograph.reverses[self.sliders.outputSlider.value - 1])
 
-    def onStepChange(self, v):
-        self.tomograph.step = v.new
-
     def onDetectorsNumberChange(self, v):
         self.tomograph.detector_num = v.new
 
@@ -71,7 +68,6 @@ class Gui:
     def observeSliders(self):
         self.sliders.sinogramSlider.observe(self.onSinogramOrReverseChange, names="value")
         self.sliders.outputSlider.observe(self.onSinogramOrReverseChange, names="value")
-        self.sliders.stepSlider.observe(self.onStepChange, names="value")
         self.sliders.detectorsNumberSlider.observe(self.onDetectorsNumberChange, names="value")
         self.sliders.detectorRangeSlider.observe(self.onDetectorsRangeChange, names="value")
 
@@ -121,24 +117,22 @@ class StartButton:
 
 
 class Sliders:
-    def __init__(self):
+    def __init__(self, iterations):
+        self.iter = iterations
         self.sinogramSlider = None
         self.outputSlider = None
-        self.stepSlider = None
         self.detectorsNumberSlider = None
         self.detectorRangeSlider = None
         self.sliders = []
 
     def createSlider(self):
-        self.sinogramSlider = widgets.IntSlider(description="Sinogram Iteration", min=1, max=360, step=1, value=360)
-        self.outputSlider = widgets.IntSlider(description="Output Iteration", min=1, max=360, step=1, value=360)
-        self.stepSlider = widgets.IntSlider(description="Step in degrees", min=1, max=36, step=1, value=1)
-        self.detectorsNumberSlider = widgets.IntSlider(description="Number of Detectors", min=10,
-                                                       max=300, step=5, value=90)
-        self.detectorRangeSlider = widgets.IntSlider(description="Detectors range", min=0, max=360, step=10, value=90)
+        self.sinogramSlider = widgets.IntSlider(description="Sinogram Iteration", min=1, max=self.iter, step=1, value=self.iter)
+        self.outputSlider = widgets.IntSlider(description="Output Iteration", min=1, max=self.iter, step=1, value=self.iter)
+        self.detectorsNumberSlider = widgets.IntSlider(description="Number of Detectors", min=90,
+                                                       max=720, step=90, value=180)
+        self.detectorRangeSlider = widgets.IntSlider(description="Detectors range", min=45, max=270, step=45, value=180)
 
-        self.sliders = [self.sinogramSlider, self.outputSlider, self.stepSlider,
-                        self.detectorsNumberSlider, self.detectorRangeSlider]
+        self.sliders = [self.sinogramSlider, self.outputSlider, self.detectorsNumberSlider, self.detectorRangeSlider]
 
     def display(self):
         for slider in self.sliders:
