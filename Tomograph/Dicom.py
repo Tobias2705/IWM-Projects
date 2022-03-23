@@ -3,6 +3,7 @@ import pydicom
 from pydicom.data import get_testdata_files
 import datetime
 
+
 def writeDicom(image, name, comment):
     filename = get_testdata_files("CT_small.dcm")[0]
     ds = pydicom.dcmread(filename)
@@ -28,8 +29,6 @@ def writeDicom(image, name, comment):
     ds.PatientName = name
     ds.InstitutionName = 'Politechnika Poznanska'
     ds.Manufacturer = 'Politechnika Poznanska'
-    #ds.PatientSex = sex
-    #ds.PatientBirthDate = birthDate
     dt = datetime.datetime.now()
     ds.StudyDate = dt.strftime('%Y%m%d')
     timeStr = dt.strftime('%H%M%S.%d')

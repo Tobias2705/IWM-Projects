@@ -20,12 +20,12 @@ class Gui:
     def start(self, v):
         self.container.displayContainer.clear_output()
         self.tomograph.main()
-        self.container.displayImages(self.tomograph, self.tomograph.sinograms[-1], self.tomograph.reverses[-1])
+        self.container.displayImages(self.tomograph, -1, -1)
         self.displayInformation()
 
     def displayInformation(self):
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print("Błąd średiokwadratowy: ", self.container.mse)
+        print("Błąd średiokwadratowy: ", self.container.rmse)
         if self.tomograph.patient != "":
             print("Pacjent: ", self.tomograph.patient)
             print("Opis badanego: ", self.tomograph.descript)
@@ -56,8 +56,8 @@ class Gui:
                 or len(self.tomograph.reverses) < self.sliders.outputSlider.value:
             return
         time.sleep(0.2)
-        self.container.displayImages(self.tomograph, self.tomograph.sinograms[self.sliders.sinogramSlider.value - 1], 
-                                     self.tomograph.reverses[self.sliders.outputSlider.value - 1])
+        self.container.displayImages(self.tomograph, self.sliders.sinogramSlider.value - 1, 
+                                     self.sliders.outputSlider.value - 1)
 
     def onDetectorsNumberChange(self, v):
         self.tomograph.detector_num = v.new
@@ -126,8 +126,10 @@ class Sliders:
         self.sliders = []
 
     def createSlider(self):
-        self.sinogramSlider = widgets.IntSlider(description="Sinogram Iteration", min=1, max=self.iter, step=1, value=self.iter)
-        self.outputSlider = widgets.IntSlider(description="Output Iteration", min=1, max=self.iter, step=1, value=self.iter)
+        self.sinogramSlider = widgets.IntSlider(description="Sinogram Iteration", min=1, max=self.iter,
+                                                step=1, value=self.iter)
+        self.outputSlider = widgets.IntSlider(description="Output Iteration", min=1, max=self.iter,
+                                              step=1, value=self.iter)
         self.detectorsNumberSlider = widgets.IntSlider(description="Number of Detectors", min=90,
                                                        max=720, step=90, value=180)
         self.detectorRangeSlider = widgets.IntSlider(description="Detectors range", min=45, max=270, step=45, value=180)

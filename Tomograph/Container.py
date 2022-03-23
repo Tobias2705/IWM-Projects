@@ -1,11 +1,11 @@
+import Dicom
 import ipywidgets as widgets
 import numpy as np
 import matplotlib.pyplot as plt
 import pydicom
+import math
 from IPython.display import display, clear_output
-from skimage.filters import median
-from sklearn.metrics import mean_squared_error
-import Dicom
+
 
 # Zdefiniowanie funkcji
 def normalize(image):
@@ -20,10 +20,10 @@ def normalize(image):
     return image
 
 
-def mse(x, y):
-    err = np.sum((x.astype("float") - y.astype("float")) ** 2)
-    err /= float(len(x) * len(x[0]))
-    return err
+def rmse(x, y):
+    MSE = np.square(np.subtract(x,y)).mean()
+    RMSE = math.sqrt(MSE)
+    return RMSE
 
 
 class Container:
@@ -31,7 +31,7 @@ class Container:
         self.displayContainer = None
         self.fig = None
         self.axes = None
-        self.mse = None
+        self.rmse = None
 
     def createContainer(self):
         self.displayContainer = widgets.Output(layout={'height': '1050px'})
@@ -41,26 +41,24 @@ class Container:
         plt.close()
         display(self.displayContainer)
 
-    def displayImages(self, tom, sinograms, reverses):
-        sinogram = normalize(sinograms)
-        reverse = normalize(reverses)
+    def displayImages(self, tom, sinSlide, outSlide):
+        sinogram = normalize(tom.sinograms[sinSlide])
+        reverse = normalize(tom.reverses[outSlide])
 
         if tom.isFilter:
-            reverseF = median(np.copy(reverse), selem=np.ones((5, 5)))
+            sinogram = tom.filterSin[sinSlide]
+            reverseF = tom.filterRes[outSlide]
 
         if tom.isDicom:
             Dicom.writeDicom(np.copy(reverse), tom.patient, tom.descript)
             reverseD = pydicom.dcmread("Dicom_File.dcm")
             tom.dicom = reverseD
 
-
         with self.displayContainer:
             clear_output()
             self.axes[0][0].set_title('Obraz wejściowy', fontsize=26)
             self.axes[0][1].set_title('Sinogram', fontsize=26)
             self.axes[1][0].set_title('Obraz wyjściowy bez filtru', fontsize=26)
-
-
 
             for i in range(3):
                 for j in range(2):
@@ -74,9 +72,9 @@ class Container:
                 self.axes[1][1].set_visible(True)
                 self.axes[1][1].set_title('Obraz wyjściowy z filtrem', fontsize=26)
                 self.axes[1][1].imshow(reverseF, cmap='gray')
-                self.mse = mse(tom.compare, reverseF)
+                self.rmse = rmse(tom.compare, reverseF)
             else:
-                self.mse = mse(tom.compare, reverse)
+                self.rmse = rmse(tom.compare, reverse)
                 self.axes[1][1].set_visible(False)
             if tom.isDicom:
                 self.axes[2][0].set_visible(True)
@@ -84,5 +82,4 @@ class Container:
                 self.axes[2][0].imshow(reverseD.pixel_array, cmap='gray')
             else:
                 self.axes[2][0].set_visible(False)
-            # self.axes[2][0].set_title('Obraz DICOM') -> To potem jak już dicom będziesz ogarniał
             display(self.fig)
