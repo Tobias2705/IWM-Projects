@@ -7,6 +7,11 @@ def loadImage(path):
     img = cv2.imread(path, cv2.IMREAD_COLOR)
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
+def loadImageML(path):
+    img = cv2.imread(path, cv2.IMREAD_COLOR)
+    img = cv2.resize(img, (0,0), fx=0.25, fy=0.25) 
+    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
 
 def getPreparedImage(img):
     preparedImage = Processing.preProcessing(img, [0, 1, 7, 5, 9])
