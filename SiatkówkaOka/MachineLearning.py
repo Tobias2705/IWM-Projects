@@ -58,6 +58,8 @@ class MachineLearning:
     def __getImageValuesAsModelData(self, img, hoImg, size, percentage):
         sampleSize = size
         samplingPercentage = percentage
+        dataX = []
+        dataY = []
 
         for x in range(len(img)):
             height, width, depth = img[x].shape
@@ -65,23 +67,23 @@ class MachineLearning:
             for i in range(0, height - sampleSize):
                 for j in np.floor(np.arange(0, width - sampleSize, 1 / samplingPercentage)).astype(int):
                     arr_sample = img[x][i: i + sampleSize, j: j + sampleSize]
-                    self.datasetX.append(np.array(arr_sample))
+                    dataX.append(np.array(arr_sample))
 
                     arr_ground_sample = hoImg[x][i: i + sampleSize, j: j + sampleSize]
                     point_y = arr_ground_sample[sampleSize // 2][sampleSize // 2]
                     point_mean = np.mean(point_y)
 
                     if point_mean > 50:
-                        self.datasetY.append(1)
+                        dataY.append(1)
                     else:
-                        self.datasetY.append(0)
+                        dataY.append(0)
 
-        self.datasetX = np.array(self.datasetX)
-        self.datasetX = self.datasetX.reshape(len(self.datasetX), sampleSize)
+        self.datasetX = np.array(dataX)
+#         self.datasetX = self.datasetX.reshape(len(self.datasetX), sampleSize)
 
-        self.datasetY = to_categorical(self.datasetY)
+        self.datasetY = to_categorical(dataY)
 
-    def __createModel(self):
+    def createModel(self):
         self.model = Sequential()
 
         self.model.add(Conv2D(70, kernel_size=3, activation='relu', input_shape=(5, 5, 3)))
@@ -104,7 +106,7 @@ class MachineLearning:
                                                                             self.datasetY,
                                                                             test_size=0.25,
                                                                             random_state=42)
-        self.model.fit(train_data, train_labels, validation_data=(test_data, test_labels), epochs=2)
+        self.model.fit(train_data, train_labels, validation_data=(test_data, test_labels), epochs=50)
 
     def anotherImagesResult(self, paths, hoPaths):
 
@@ -182,7 +184,8 @@ class MachineLearning:
             plt.imshow(pixel_img, cmap="gray")
 
             s += 1
-
+        
+        print("Ogólne rezultaty")
         print("Średnie wyniki dla tego rozwiązania")
         print("średnie accuracy: " + str(avg_accuracy / s))
         print("średnie sensitivity: " + str(avg_sensitivity / s))
