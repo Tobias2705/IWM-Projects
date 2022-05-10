@@ -19,7 +19,7 @@ class Classifier:
         self.predicted = None
 
     def training(self):
-        for train_index, test_index in KFold(n_splits=5, shuffle=False).split(self.data):
+        for train_index, test_index in KFold(n_splits=7, shuffle=False).split(self.data):
             X_train, X_test = list(map(self.data.__getitem__, train_index)), list(
                 map(self.data.__getitem__, test_index))
             y_train, y_test = list(map(self.target.__getitem__, train_index)), list(
@@ -43,6 +43,9 @@ class Classifier:
         self.predicting()
 
     def show3(self, prepared):
+        width = prepared.shape[1]
+        height = prepared.shape[0]
+        dim = (width, height)
         fig = plt.figure(figsize=(15, 20))
         plt.subplot(1, 3, 1)
         plt.imshow(prepared, cmap='gray')
@@ -50,11 +53,11 @@ class Classifier:
         plt.title('Test image')
 
         plt.subplot(1, 3, 2)
-        plt.imshow(self.predicted.reshape(192, 200), cmap='gray')
+        plt.imshow(self.predicted.reshape(width, height), cmap='gray')
         plt.axis('off')
         plt.title('Predicted')
 
         plt.subplot(1, 3, 3)
-        plt.imshow(self.target_test.reshape(192, 200), cmap='gray')
+        plt.imshow(self.target_test.reshape(width, height), cmap='gray')
         plt.axis('off')
         plt.title('HoldOut')

@@ -1,8 +1,11 @@
-import Image as Img
+from keras import models
 
+import Effectiveness
+import Image as Img
+import Effectiveness as EF
 import numpy as np
 from matplotlib import pylab as plt
-
+import Processing
 from sklearn.model_selection import train_test_split
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.layers import Conv2D
@@ -96,7 +99,7 @@ class MachineLearning:
     def testData(self, paths, hoPaths):
         img = []
         hoImg = []
-        for i in range(3):
+        for i in range(18):
             img.append(Img.loadImageML(paths[i]))
             hoImg.append(Img.loadImageML(hoPaths[i]))
         self.__getImageValuesAsModelData(img, hoImg, sampleSizeV, samplingPercentageV)
@@ -107,17 +110,18 @@ class MachineLearning:
                                                                             test_size=0.25,
                                                                             random_state=42)
         self.model.fit(train_data, train_labels, validation_data=(test_data, test_labels), epochs=50)
+        self.model.save("model_v3.h5")
 
     def anotherImagesResult(self, paths, hoPaths):
 
         avg_accuracy = avg_sensitivity = avg_specificity = avg_negative = avg_precision = s = 0
-
-        for k in range(0, len(paths) - 3):
-            img = Img.loadImageML(paths[k + 3])
-            ground_truth = Img.loadImageML(hoPaths[k + 3])
+        model = models.load_model("model_v3.h5")
+        for k in range(0, len(paths) - 18):
+            img = Img.loadImageML(paths[k + 18])
+            ground_truth = Img.loadImageML(hoPaths[k + 18])
 
             self.__getImageValuesAsModelData([img], [ground_truth], sampleSizeV, 1)
-            prediction = self.model.predict(self.datasetX)
+            prediction = model.predict(self.datasetX)
 
             height, width, depth = img.shape
 
@@ -128,7 +132,9 @@ class MachineLearning:
                 row_comparsion = []
                 row_pixel = []
                 for j in range(0, width - sampleSizeV):
+
                     index = (width - sampleSizeV) * i + j
+                    print(index,  prediction[index])
                     point = np.mean(ground_truth[i][j])
 
                     isVessel = False
@@ -154,7 +160,10 @@ class MachineLearning:
                 pixel_img.append(np.array(row_pixel))
 
             acc, sen, spec, neg, prec = countMetrics(self.datasetY, prediction)
-
+            print("=============")
+            hold = (Processing.preProcessing( ground_truth, [0]) / 255).astype(int)
+            #print(type(pixel_img), hold.shape, pixel_img[120], hold[120])
+            Effectiveness.checkEffectiveness(np.array(pixel_img), hold)
             avg_accuracy += acc
             avg_sensitivity += sen
             avg_specificity += spec
@@ -175,13 +184,21 @@ class MachineLearning:
 
             plt.figure(figsize=(20, 10))
 
-            plt.subplot(1, 1, 1)
+            plt.subplot(1, 4, 1)
+            plt.axis('off')
+            plt.imshow(img)
+
+            plt.subplot(1, 4, 2)
             plt.axis('off')
             plt.imshow(comparsion)
 
-            plt.subplot(1, 1, 1)
+            plt.subplot(1, 4, 3)
             plt.axis('off')
             plt.imshow(pixel_img, cmap="gray")
+
+            plt.subplot(1, 4, 4)
+            plt.axis('off')
+            plt.imshow(ground_truth)
 
             s += 1
         
