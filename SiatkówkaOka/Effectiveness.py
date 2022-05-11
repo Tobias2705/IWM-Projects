@@ -48,4 +48,23 @@ def checkEffectiveness(img, ho, isPrint=True, isTable=True):
         print('Specificity&Sensitivity Average: {}%'.format(round(avg * 100, 2)))
         if isTable:
             makeTable(TP, TN, FP, FN)
+    print("<<")
+    return [TP, TN, FP, FN, sen, spe, acc, avg]
+
+
+def checkEffectiveness2(TP, FP, FN, TN, isPrint=True, isTable=True):
+    sen = round(TP / (TP + FN), 4)
+    spe = round(TN / (TN + FP), 4)
+    acc = round((TP + TN) / (TP + FP + TN + FN), 4)
+    avg = round((sen + spe) / 2, 4)
+
+    if isPrint:
+        print('Effectiveness for one image')
+        print('Sensitivity: {}%'.format(round(sen * 100, 2)))
+        print('Specificity: {}%'.format(round(spe * 100, 2)))
+        print('Accuracy: {}%'.format(round(acc * 100, 2)))
+        print('Specificity&Sensitivity Average: {}%'.format(round(avg * 100, 2)))
+        if isTable:
+            makeTable(TP, TN, FP, FN)
+    print("<<")
     return [TP, TN, FP, FN, sen, spe, acc, avg]

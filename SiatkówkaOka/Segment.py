@@ -1,5 +1,7 @@
 
 from math import ceil
+
+import numpy as np
 from skimage.measure import moments_central, moments_hu
 from skimage.util import img_as_float
 from statistics import variance

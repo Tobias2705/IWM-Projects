@@ -39,7 +39,8 @@ def countMetrics(data, pred):
                 negative_true += 1
             else:
                 negative_false += 1
-
+    print(">>")
+    #Effectiveness.checkEffectiveness2(positive_true, positive_false, negative_false, negative_true)
     acc = (positive_true + negative_true) / (positive_all + negative_all)
 
     sen = positive_true / (positive_true + negative_false)
@@ -73,7 +74,10 @@ class MachineLearning:
                     dataX.append(np.array(arr_sample))
 
                     arr_ground_sample = hoImg[x][i: i + sampleSize, j: j + sampleSize]
+                    #print(arr_sample)
+                    #print(arr_ground_sample)
                     point_y = arr_ground_sample[sampleSize // 2][sampleSize // 2]
+                    #print(point_y)
                     point_mean = np.mean(point_y)
 
                     if point_mean > 50:
@@ -82,8 +86,6 @@ class MachineLearning:
                         dataY.append(0)
 
         self.datasetX = np.array(dataX)
-#         self.datasetX = self.datasetX.reshape(len(self.datasetX), sampleSize)
-
         self.datasetY = to_categorical(dataY)
 
     def createModel(self):
@@ -109,14 +111,14 @@ class MachineLearning:
                                                                             self.datasetY,
                                                                             test_size=0.25,
                                                                             random_state=42)
-        self.model.fit(train_data, train_labels, validation_data=(test_data, test_labels), epochs=50)
-        self.model.save("model_v3.h5")
+        self.model.fit(train_data, train_labels, validation_data=(test_data, test_labels), epochs=150)
+        self.model.save("model_v250.h5")
 
     def anotherImagesResult(self, paths, hoPaths):
 
         avg_accuracy = avg_sensitivity = avg_specificity = avg_negative = avg_precision = s = 0
-        model = models.load_model("model_v3.h5")
-        for k in range(0, len(paths) - 18):
+        model = models.load_model("model_v250.h5")
+        for k in range(0, 5):
             img = Img.loadImageML(paths[k + 18])
             ground_truth = Img.loadImageML(hoPaths[k + 18])
 
@@ -134,7 +136,7 @@ class MachineLearning:
                 for j in range(0, width - sampleSizeV):
 
                     index = (width - sampleSizeV) * i + j
-                    print(index,  prediction[index])
+                    #(index,  prediction[index])
                     point = np.mean(ground_truth[i][j])
 
                     isVessel = False
@@ -160,10 +162,10 @@ class MachineLearning:
                 pixel_img.append(np.array(row_pixel))
 
             acc, sen, spec, neg, prec = countMetrics(self.datasetY, prediction)
-            print("=============")
+            #print("=============")
             hold = (Processing.preProcessing( ground_truth, [0]) / 255).astype(int)
             #print(type(pixel_img), hold.shape, pixel_img[120], hold[120])
-            Effectiveness.checkEffectiveness(np.array(pixel_img), hold)
+
             avg_accuracy += acc
             avg_sensitivity += sen
             avg_specificity += spec
@@ -181,25 +183,28 @@ class MachineLearning:
 
             comparsion = np.array(comparsion)
             pixel_img = np.array(pixel_img)
-
+            print(k)
             plt.figure(figsize=(20, 10))
 
             plt.subplot(1, 4, 1)
             plt.axis('off')
             plt.imshow(img)
+            plt.title('original')
 
             plt.subplot(1, 4, 2)
             plt.axis('off')
             plt.imshow(comparsion)
+            plt.title('comparsion')
 
             plt.subplot(1, 4, 3)
             plt.axis('off')
             plt.imshow(pixel_img, cmap="gray")
+            plt.title('predicted')
 
             plt.subplot(1, 4, 4)
             plt.axis('off')
             plt.imshow(ground_truth)
-
+            plt.title('Ground_truth')
             s += 1
         
         print("Ogólne rezultaty")
